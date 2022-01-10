@@ -157,7 +157,7 @@ class SuperJobStatistics:
             if vacancies is None:
                 vacancies = response.json()
                 more_results = vacancies['more']
-                print('more_results: ', more_results)
+                
                 current_page += 1
             else:
                 vacancies['objects'] = vacancies['objects'] + response.json()['objects']
