@@ -1,253 +1,146 @@
-import json
 import requests
 import statistics
 
+from itertools import count
 from environs import Env
 from terminaltables import AsciiTable
 
 
-class HeadHanterStatistics:
-    def __init__(self, area=1, period=30):
-        self.area = area
-        self.period = period
-
-
-    def get_vacancies_by_programming_lan(self, language):
-        max_per_page_param = 100
-        vacancies = None
-        current_page = 0
-        total_pages = 0
-
-        while current_page <= total_pages:
-            payload = {
-                'text': f'{language}',
-                'search_field': 'name',
-                'area': self.area,
-                'period': self.period,
-                'per_page': max_per_page_param,
-                'page': current_page
-            }
+def get_hh_vacancies(language:str, search_area=1, search_period=30):
+    vacancies = []
+    url = 'https://api.hh.ru/vacancies'
+    max_per_page_param = 100
+    
+    for page in count(0, 1):
+        payload = {
+            'text': f'{language}',
+            'search_field': 'name',
+            'area': search_area,
+            'period': search_period,
+            'per_page': max_per_page_param,
+            'page': page
+        }
         
-            response = requests.get('https://api.hh.ru/vacancies', params=payload)
-            response.raise_for_status()
+        response = requests.get(url, params=payload)
+        response.raise_for_status()
 
-            if vacancies is None:
-                vacancies = response.json()
-                total_pages = vacancies['pages']
-                current_page += 1
-            else:
-                vacancies['items'] = vacancies['items'] + response.json()['items']
-                current_page += 1
-        
-        return vacancies
-        
+        response = response.json()
+        vacancies += response['items']
+        total_pages = response['pages']
+        vacancies_amount = response['found']
 
-    def get_salaries_from_vacancies(self, vacancies):
-        salaries = []
-
-        for vacancy in vacancies:
-            if vacancy['salary']:
-                salary = {
-                    'from': vacancy['salary']['from'],
-                    'to': vacancy['salary']['to'],
-                    'currency': vacancy['salary']['currency'],
-                    'gross': vacancy['salary']['gross']
-                }
-
-                salaries.append(salary)
-
-        return salaries
+        if page == total_pages:
+            return vacancies, vacancies_amount
 
 
-    def predict_salary(self, salaries):
-        predicted_salaries = []
+def get_sj_vacancies(language:str, token:str, town_id=4):
+    vacancies = []
+    url = 'https://api.superjob.ru/2.0/vacancies'
+    headers = {
+        'X-Api-App-Id': token
+    }
 
-        for salary in salaries:
-            if salary['currency'] != 'RUR':
-                pass
-            elif salary['from'] and salary['to']:
-                salary = (salary['from'] + salary['to']) / 2
-                predicted_salaries.append(salary)
-                
-            elif not salary['from']:
-                salary = salary['to'] * 0.8
-                predicted_salaries.append(salary)
-                
-            elif not salary['to']:
-                salary = salary['from'] * 1.2
-                predicted_salaries.append(salary)
-
-        return predicted_salaries
-
-
-    def get_statistics_by_program_lan(self, language):
-        vacancies = self.get_vacancies_by_programming_lan(language)
-        salaries = self.get_salaries_from_vacancies(vacancies['items'])
-        predicted_salaries = self.predict_salary(salaries)
-
-        salary_statistics = {
-            'vacancies_found': vacancies['found'],
-            'vacancies_processed': len(salaries),
-            'average_salary': round(statistics.mean(predicted_salaries))
+    for page in count(0, 1):
+        payload = {
+            'town': town_id,
+            'keywords[1][keys]': language,
+            'period': 30,
+            'page': page,
+            'count': 100
         }
 
-        return salary_statistics
-    
+        response = requests.get(url, params=payload, headers=headers)
+        response.raise_for_status()
 
-    def show_statistics_by_languages(self, *args):
-        languages_statistics = {}
-        for language in args:
-            languages_statistics[language] = self.get_statistics_by_program_lan(language)
+        response = response.json()
+        vacancies += response['objects']
+        vacancies_amount = response['total']
+        more_pages = response['more']
         
-        table_data = self.create_table_data(languages_statistics)
-        table = AsciiTable(table_data, 'HeadHanter')
-        print(table.table)
-    
+        if more_pages is False:
+            return vacancies, vacancies_amount
 
-    def create_table_data(self, statistics:dict):
-        table_data = [
-            [
-                'Язык програмирования',
-                'Вакансий найдено',
-                'Вакансий обработано',
-                'Средняя зарплата'
-            ]
+
+def get_hh_salaries(vacancies:list):
+    salaries = []
+
+    for vacancy in vacancies:
+        if vacancy['salary']:
+            if vacancy['salary']['currency'] == 'RUR':
+                if vacancy['salary']['from'] and vacancy['salary']['to']:
+                    salary = (
+                        vacancy['salary']['from'] + vacancy['salary']['to']
+                    ) / 2
+                    salaries.append(round(salary))
+
+                elif (
+                    not vacancy['salary']['from'] and vacancy['salary']['to']
+                ):
+                    salary = vacancy['salary']['to'] * 0.8
+                    salaries.append(round(salary))
+
+                elif (
+                    not vacancy['salary']['to'] and vacancy['salary']['from']
+                ):
+                    salary = vacancy['salary']['from'] * 1.2
+                    salaries.append(round(salary))
+
+    return salaries
+
+
+def get_sj_salaries(vacancies:list):
+    salaries = []
+
+    for vacancy in vacancies:
+        if vacancy['currency'] == 'rub':
+            if vacancy['payment_from'] and vacancy['payment_to']:
+                salary = (vacancy['payment_from'] + vacancy['payment_to']) / 2
+                salaries.append(round(salary))
+
+            elif vacancy['payment_from'] and not vacancy['payment_to']:
+                salary = vacancy['payment_from'] * 1.2
+                salaries.append(round(salary))
+
+            elif not vacancy['payment_from'] and vacancy['payment_to']:
+                salary = vacancy['payment_to'] * 0.8
+                salaries.append(round(salary))
+
+    return salaries
+
+
+def get_statistics(language, salaries, vacancies_amount):
+    salary_statistics = {
+        'language': language,
+        'vacancies_found': vacancies_amount,
+        'vacancies_processed': len(salaries),
+        'average_salary': round(statistics.mean(salaries))
+    }
+
+    return salary_statistics
+
+
+def create_table(statistics:list, statistics_source:str):
+    table_data = [
+        [
+            'Язык програмирования',
+            'Вакансий найдено',
+            'Вакансий обработано',
+            'Средняя зарплата'
         ]
+    ]
 
-        for program_language in statistics.keys():
-            language_data = [
-                f'{program_language}',
-                statistics[f'{program_language}']['vacancies_found'],
-                statistics[f'{program_language}']['vacancies_processed'],
-                statistics[f'{program_language}']['average_salary']
+    for language_stat in statistics:
+        table_data.append(
+            [
+                language_stat['language'],
+                language_stat['vacancies_found'],
+                language_stat['vacancies_processed'],
+                language_stat['average_salary']
             ]
-            table_data.append(language_data)
+        )
 
-        return table_data
+    return AsciiTable(table_data, statistics_source)
 
-
-class SuperJobStatistics:
-    def __init__(self, token, town_id=4):
-        self.token = token
-        self.town_id = town_id
-
-
-    def get_vacancies_by_programming_lan(self, language):
-        current_page = 0
-        total_pages = 0
-        vacancies = None
-        url = 'https://api.superjob.ru/2.0/vacancies'
-        headers = {
-            'X-Api-App-Id': self.token
-        }
-        while current_page <= total_pages:
-            payload = {
-                'town': self.town_id,
-                'keywords[1][keys]': language,
-                'period': 30,
-                'page': current_page,
-                'count': 100
-            }
-
-            response = requests.get(url, params=payload, headers=headers)
-            response.raise_for_status()
-
-            if vacancies is None:
-                vacancies = response.json()
-                total_pages = vacancies['total'] // payload['count']
-                current_page += 1
-            else:
-                vacancies['objects'] = vacancies['objects'] + response.json()['objects']
-                current_page += 1
-        
-        # if you want to save vacancies in sj_data.json, uncoment code below
-        # with open('sj_data.json', 'w', encoding='utf-8') as f:
-        #     json.dump(vacancies, f, ensure_ascii=False, indent=4)
-
-        return vacancies
-
-    
-    def get_salaries_from_vacancies(self, vacancies):
-        salaries = []
-        for vacancy in vacancies:
-
-            if vacancy['currency'] == 'rub':
-                salary = {
-                    'from': vacancy['payment_from'],
-                    'to': vacancy['payment_to']
-                }
-
-                salaries.append(salary)
-
-        return salaries
-
-    
-    def predict_salary(self, salaries):
-        predicted_salaries = []
-
-        for salary in salaries:
-            if salary['from'] and salary['to']:
-                salary = (salary['from'] + salary['to']) / 2
-                predicted_salaries.append(salary)
-                
-            elif not salary['from']:
-                salary = salary['to'] * 0.8
-                predicted_salaries.append(salary)
-                
-            elif not salary['to']:
-                salary = salary['from'] * 1.2
-                predicted_salaries.append(salary)
-            else:
-                continue
-
-        return predicted_salaries
-
-    
-    def get_statistics_by_program_lan(self, language):
-        vacancies = self.get_vacancies_by_programming_lan(language)
-        salaries = self.get_salaries_from_vacancies(vacancies['objects'])
-        predicted_salaries = self.predict_salary(salaries)
-
-        salary_statistics = {
-            'vacancies_found': vacancies['total'],
-            'vacancies_processed': len(salaries),
-            'average_salary': round(statistics.mean(predicted_salaries))
-        }
-
-        return salary_statistics
-
-
-    def show_statistics_by_languages(self, *args):
-        languages_statistics = {}
-        for language in args:
-            languages_statistics[language] = self.get_statistics_by_program_lan(language)
-        
-        table_data = self.create_table_data(languages_statistics)
-        table = AsciiTable(table_data, 'SuperJob')
-        print(table.table)
-
-
-    def create_table_data(self, statistics:dict):
-            table_data = [
-                [
-                    'Язык програмирования',
-                    'Вакансий найдено',
-                    'Вакансий обработано',
-                    'Средняя зарплата'
-                ]
-            ]
-
-            for program_language in statistics.keys():
-                language_data = [
-                    f'{program_language}',
-                    statistics[f'{program_language}']['vacancies_found'],
-                    statistics[f'{program_language}']['vacancies_processed'],
-                    statistics[f'{program_language}']['average_salary']
-                ]
-                table_data.append(language_data)
-
-            return table_data
-    
 
 if __name__ == '__main__':
     env = Env()
@@ -262,10 +155,26 @@ if __name__ == '__main__':
         'C++'
     ]
 
-    head_hunter_stat = HeadHanterStatistics()
-    head_hunter_stat.show_statistics_by_languages(*most_popular_languages)
+    hh_common_statistics = []
+    sj_common_statistics = []
 
-    super_job_stat = SuperJobStatistics(sj_token)
-    super_job_stat.show_statistics_by_languages(*most_popular_languages)
+    for language in most_popular_languages:
+        vacancies_hh, vacancies_amount_hh = get_hh_vacancies(language)
+        vacancies_sj, vacancies_amount_sj = get_sj_vacancies(language, sj_token)
 
+        hh_salaries = get_hh_salaries(vacancies_hh)
+        sj_salaries = get_sj_salaries(vacancies_sj)
+
+        hh_statistics = get_statistics(language, hh_salaries, vacancies_amount_hh)
+        sj_statistics = get_statistics(language, sj_salaries, vacancies_amount_sj)
+
+        hh_common_statistics.append(hh_statistics)
+        sj_common_statistics.append(sj_statistics)
+
+
+    hh_table = create_table(hh_common_statistics, 'HeadHanter Moscow')
+    sj_table = create_table(sj_common_statistics, 'SuperJob Moscow')
+
+    print(hh_table.table)
+    print(sj_table.table)
     
