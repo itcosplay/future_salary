@@ -10,17 +10,17 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
     vacancies = []
     url = 'https://api.hh.ru/vacancies'
     max_per_page_param = 100
+    payload = {
+        'text': language,
+        'search_field': 'name',
+        'area': search_area,
+        'period': search_period,
+        'per_page': max_per_page_param,
+        'page': 0
+    }
     
     for page in count(0, 1):
-        payload = {
-            'text': language,
-            'search_field': 'name',
-            'area': search_area,
-            'period': search_period,
-            'per_page': max_per_page_param,
-            'page': page
-        }
-        
+        payload['page'] = page
         response = requests.get(url, params=payload)
         response.raise_for_status()
 
@@ -39,16 +39,16 @@ def get_sj_vacancies(language:str, token:str, town_id=4):
     headers = {
         'X-Api-App-Id': token
     }
+    payload = {
+        'town': town_id,
+        'keywords[1][keys]': language,
+        'period': 30,
+        'page': 0,
+        'count': 100
+    }
 
     for page in count(0, 1):
-        payload = {
-            'town': town_id,
-            'keywords[1][keys]': language,
-            'period': 30,
-            'page': page,
-            'count': 100
-        }
-
+        payload['page'] = page
         response = requests.get(url, params=payload, headers=headers)
         response.raise_for_status()
 
