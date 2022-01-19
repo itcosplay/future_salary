@@ -61,7 +61,7 @@ def get_sj_vacancies(language:str, token:str, town_id=4):
             return vacancies, vacancies_amount
 
 
-def get_average_salary(salary_from, salary_to):
+def predict_rub_salary(salary_from, salary_to):
     if salary_from:
         return salary_from * 1.2
     else:
@@ -77,7 +77,7 @@ def get_hh_salaries(vacancies:list):
 
         if vacancy['salary']['currency'] != 'RUR':
             continue
-        
+
         if vacancy['salary']['from'] and vacancy['salary']['to']:
             salary = (
                 vacancy['salary']['from'] + vacancy['salary']['to']
@@ -86,7 +86,7 @@ def get_hh_salaries(vacancies:list):
 
         elif vacancy['salary']['from'] or vacancy['salary']['to']:
             salaries.append(
-                get_average_salary(
+                predict_rub_salary(
                     vacancy['salary']['from'],
                     vacancy['salary']['to']
                 )
@@ -108,7 +108,7 @@ def get_sj_salaries(vacancies:list):
 
         elif vacancy['payment_from'] or vacancy['payment_to']:
             salaries.append(
-                get_average_salary(
+                predict_rub_salary(
                     vacancy['payment_from'],
                     vacancy['payment_to']
                 )
@@ -118,11 +118,13 @@ def get_sj_salaries(vacancies:list):
 
 
 def get_statistics(language, salaries, vacancies_amount):
+    average_salary = round(statistics.mean(salaries))
+
     salary_statistics = {
         'language': language,
         'vacancies_found': vacancies_amount,
         'vacancies_processed': len(salaries),
-        'average_salary': round(statistics.mean(salaries))
+        'average_salary': average_salary
     }
 
     return salary_statistics
