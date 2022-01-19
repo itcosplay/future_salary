@@ -6,7 +6,7 @@ from environs import Env
 from terminaltables import AsciiTable
 
 
-def get_hh_vacancies(language:str, search_area=1, search_period=30):
+def get_hh_vacancies(language: str, search_area=1, search_period=30):
     vacancies = []
     url = 'https://api.hh.ru/vacancies'
     max_per_page_param = 100
@@ -17,7 +17,7 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
         'period': search_period,
         'per_page': max_per_page_param,
     }
-    
+
     for page in count(0, 1):
         payload['page'] = page
 
@@ -33,7 +33,7 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
             return vacancies, vacancies_amount
 
 
-def get_sj_vacancies(language:str, token:str, town_id=4):
+def get_sj_vacancies(language: str, token: str, town_id=4):
     vacancies = []
     url = 'https://api.superjob.ru/2.0/vacancies'
     headers = {
@@ -68,7 +68,7 @@ def predict_rub_salary(salary_from, salary_to):
         return salary_to * 0.8
 
 
-def get_hh_salaries(vacancies:list):
+def get_hh_salaries(vacancies: list):
     salaries = []
 
     for vacancy in vacancies:
@@ -95,7 +95,7 @@ def get_hh_salaries(vacancies:list):
     return salaries
 
 
-def get_sj_salaries(vacancies:list):
+def get_sj_salaries(vacancies: list):
     salaries = []
 
     for vacancy in vacancies:
@@ -130,8 +130,8 @@ def get_statistics(language, salaries, vacancies_amount):
     return salary_statistics
 
 
-def create_table(statistics:list, statistics_source:str):
-    table_data = [
+def create_table(statistics: list, statistics_source: str):
+    result_table = [
         [
             'Язык програмирования',
             'Вакансий найдено',
@@ -141,7 +141,7 @@ def create_table(statistics:list, statistics_source:str):
     ]
 
     for language_stat in statistics:
-        table_data.append(
+        result_table.append(
             [
                 language_stat['language'],
                 language_stat['vacancies_found'],
@@ -150,7 +150,7 @@ def create_table(statistics:list, statistics_source:str):
             ]
         )
 
-    return AsciiTable(table_data, statistics_source)
+    return AsciiTable(result_table, statistics_source)
 
 
 if __name__ == '__main__':
