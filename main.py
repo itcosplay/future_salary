@@ -16,7 +16,6 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
         'area': search_area,
         'period': search_period,
         'per_page': max_per_page_param,
-        'page': 0
     }
     
     for page in count(0, 1):
@@ -29,7 +28,7 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
         total_pages = response['pages']
         vacancies_amount = response['found']
 
-        if page == total_pages:
+        if page == total_pages - 1:
             return vacancies, vacancies_amount
 
 
@@ -43,7 +42,6 @@ def get_sj_vacancies(language:str, token:str, town_id=4):
         'town': town_id,
         'keywords[1][keys]': language,
         'period': 30,
-        'page': 0,
         'count': 100
     }
 
