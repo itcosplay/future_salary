@@ -13,7 +13,7 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
     
     for page in count(0, 1):
         payload = {
-            'text': f'{language}',
+            'text': language,
             'search_field': 'name',
             'area': search_area,
             'period': search_period,
