@@ -61,6 +61,13 @@ def get_sj_vacancies(language:str, token:str, town_id=4):
             return vacancies, vacancies_amount
 
 
+def get_average_salary(salary_from, salary_to):
+    if salary_from:
+        return salary_from * 1.2
+    else:
+        return salary_to * 0.8
+
+
 def get_hh_salaries(vacancies:list):
     salaries = []
 
@@ -68,24 +75,22 @@ def get_hh_salaries(vacancies:list):
         if not vacancy['salary']:
             continue
 
-        if vacancy['salary']['currency'] == 'RUR':
-            if vacancy['salary']['from'] and vacancy['salary']['to']:
-                salary = (
-                    vacancy['salary']['from'] + vacancy['salary']['to']
-                ) / 2
-                salaries.append(round(salary))
+        if vacancy['salary']['currency'] != 'RUR':
+            continue
+        
+        if vacancy['salary']['from'] and vacancy['salary']['to']:
+            salary = (
+                vacancy['salary']['from'] + vacancy['salary']['to']
+            ) / 2
+            salaries.append(salary)
 
-            elif (
-                not vacancy['salary']['from'] and vacancy['salary']['to']
-            ):
-                salary = vacancy['salary']['to'] * 0.8
-                salaries.append(round(salary))
-
-            elif (
-                not vacancy['salary']['to'] and vacancy['salary']['from']
-            ):
-                salary = vacancy['salary']['from'] * 1.2
-                salaries.append(round(salary))
+        elif vacancy['salary']['from'] or vacancy['salary']['to']:
+            salaries.append(
+                get_average_salary(
+                    vacancy['salary']['from'],
+                    vacancy['salary']['to']
+                )
+            )
 
     return salaries
 
@@ -96,18 +101,18 @@ def get_sj_salaries(vacancies:list):
     for vacancy in vacancies:
         if vacancy['currency'] != 'rub':
             continue
-        
+
         if vacancy['payment_from'] and vacancy['payment_to']:
             salary = (vacancy['payment_from'] + vacancy['payment_to']) / 2
             salaries.append(round(salary))
 
-        elif vacancy['payment_from'] and not vacancy['payment_to']:
-            salary = vacancy['payment_from'] * 1.2
-            salaries.append(round(salary))
-
-        elif not vacancy['payment_from'] and vacancy['payment_to']:
-            salary = vacancy['payment_to'] * 0.8
-            salaries.append(round(salary))
+        elif vacancy['payment_from'] or vacancy['payment_to']:
+            salaries.append(
+                get_average_salary(
+                    vacancy['payment_from'],
+                    vacancy['payment_to']
+                )
+            )
 
     return salaries
 
