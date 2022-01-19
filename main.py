@@ -54,8 +54,8 @@ def get_sj_vacancies(language:str, token:str, town_id=4):
         vacancies += response['objects']
         vacancies_amount = response['total']
         more_pages = response['more']
-        
-        if more_pages is False:
+
+        if not more_pages:
             return vacancies, vacancies_amount
 
 
