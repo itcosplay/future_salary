@@ -20,6 +20,7 @@ def get_hh_vacancies(language:str, search_area=1, search_period=30):
     
     for page in count(0, 1):
         payload['page'] = page
+
         response = requests.get(url, params=payload)
         response.raise_for_status()
 
@@ -47,6 +48,7 @@ def get_sj_vacancies(language:str, token:str, town_id=4):
 
     for page in count(0, 1):
         payload['page'] = page
+
         response = requests.get(url, params=payload, headers=headers)
         response.raise_for_status()
 
@@ -63,25 +65,27 @@ def get_hh_salaries(vacancies:list):
     salaries = []
 
     for vacancy in vacancies:
-        if vacancy['salary']:
-            if vacancy['salary']['currency'] == 'RUR':
-                if vacancy['salary']['from'] and vacancy['salary']['to']:
-                    salary = (
-                        vacancy['salary']['from'] + vacancy['salary']['to']
-                    ) / 2
-                    salaries.append(round(salary))
+        if not vacancy['salary']:
+            continue
 
-                elif (
-                    not vacancy['salary']['from'] and vacancy['salary']['to']
-                ):
-                    salary = vacancy['salary']['to'] * 0.8
-                    salaries.append(round(salary))
+        if vacancy['salary']['currency'] == 'RUR':
+            if vacancy['salary']['from'] and vacancy['salary']['to']:
+                salary = (
+                    vacancy['salary']['from'] + vacancy['salary']['to']
+                ) / 2
+                salaries.append(round(salary))
 
-                elif (
-                    not vacancy['salary']['to'] and vacancy['salary']['from']
-                ):
-                    salary = vacancy['salary']['from'] * 1.2
-                    salaries.append(round(salary))
+            elif (
+                not vacancy['salary']['from'] and vacancy['salary']['to']
+            ):
+                salary = vacancy['salary']['to'] * 0.8
+                salaries.append(round(salary))
+
+            elif (
+                not vacancy['salary']['to'] and vacancy['salary']['from']
+            ):
+                salary = vacancy['salary']['from'] * 1.2
+                salaries.append(round(salary))
 
     return salaries
 
@@ -90,18 +94,20 @@ def get_sj_salaries(vacancies:list):
     salaries = []
 
     for vacancy in vacancies:
-        if vacancy['currency'] == 'rub':
-            if vacancy['payment_from'] and vacancy['payment_to']:
-                salary = (vacancy['payment_from'] + vacancy['payment_to']) / 2
-                salaries.append(round(salary))
+        if vacancy['currency'] != 'rub':
+            continue
+        
+        if vacancy['payment_from'] and vacancy['payment_to']:
+            salary = (vacancy['payment_from'] + vacancy['payment_to']) / 2
+            salaries.append(round(salary))
 
-            elif vacancy['payment_from'] and not vacancy['payment_to']:
-                salary = vacancy['payment_from'] * 1.2
-                salaries.append(round(salary))
+        elif vacancy['payment_from'] and not vacancy['payment_to']:
+            salary = vacancy['payment_from'] * 1.2
+            salaries.append(round(salary))
 
-            elif not vacancy['payment_from'] and vacancy['payment_to']:
-                salary = vacancy['payment_to'] * 0.8
-                salaries.append(round(salary))
+        elif not vacancy['payment_from'] and vacancy['payment_to']:
+            salary = vacancy['payment_to'] * 0.8
+            salaries.append(round(salary))
 
     return salaries
 
@@ -147,10 +153,10 @@ if __name__ == '__main__':
 
     most_popular_languages = [
         'Python',
-        'Javascript',
-        'Java',
-        'Ruby',
-        'C++'
+        # 'Javascript',
+        # 'Java',
+        # 'Ruby',
+        # 'C++'
     ]
 
     hh_common_statistics = []
