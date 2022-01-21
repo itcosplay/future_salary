@@ -160,10 +160,10 @@ if __name__ == '__main__':
 
     most_popular_languages = [
         'Python',
-        # 'Javascript',
-        # 'Java',
-        # 'Ruby',
-        # 'C++'
+        'Javascript',
+        'Java',
+        'Ruby',
+        'C++'
     ]
 
     hh_common_statistics = []
