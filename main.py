@@ -77,18 +77,19 @@ def get_hh_salaries(vacancies: list):
 
         if vacancy['salary']['currency'] != 'RUR':
             continue
+        
+        payment_from = vacancy['salary']['from']
+        payment_to = vacancy['salary']['to']
 
-        if vacancy['salary']['from'] and vacancy['salary']['to']:
-            salary = (
-                vacancy['salary']['from'] + vacancy['salary']['to']
-            ) / 2
+        if payment_from and payment_to:
+            salary = (payment_from + payment_to) / 2
             salaries.append(salary)
 
-        elif vacancy['salary']['from'] or vacancy['salary']['to']:
+        elif payment_from or payment_to:
             salaries.append(
                 predict_rub_salary(
-                    vacancy['salary']['from'],
-                    vacancy['salary']['to']
+                    payment_from,
+                    payment_to
                 )
             )
 
@@ -101,16 +102,19 @@ def get_sj_salaries(vacancies: list):
     for vacancy in vacancies:
         if vacancy['currency'] != 'rub':
             continue
+        
+        payment_from = vacancy['payment_from']
+        payment_to = vacancy['payment_to']
 
-        if vacancy['payment_from'] and vacancy['payment_to']:
-            salary = (vacancy['payment_from'] + vacancy['payment_to']) / 2
+        if payment_from and payment_to:
+            salary = (payment_from + payment_to) / 2
             salaries.append(round(salary))
 
-        elif vacancy['payment_from'] or vacancy['payment_to']:
+        elif payment_from or payment_to:
             salaries.append(
                 predict_rub_salary(
-                    vacancy['payment_from'],
-                    vacancy['payment_to']
+                    payment_from,
+                    payment_to
                 )
             )
 
