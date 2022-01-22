@@ -24,10 +24,10 @@ def get_hh_vacancies(language: str, search_area=1, search_period=30):
         response = requests.get(url, params=payload)
         response.raise_for_status()
 
-        response = response.json()
-        vacancies += response['items']
-        total_pages = response['pages']
-        vacancies_amount = response['found']
+        vacancies_info = response.json()
+        vacancies += vacancies_info['items']
+        total_pages = vacancies_info['pages']
+        vacancies_amount = vacancies_info['found']
 
         if page == total_pages - 1:
             return vacancies, vacancies_amount
@@ -52,10 +52,10 @@ def get_sj_vacancies(language: str, token: str, town_id=4):
         response = requests.get(url, params=payload, headers=headers)
         response.raise_for_status()
 
-        response = response.json()
-        vacancies += response['objects']
-        vacancies_amount = response['total']
-        more_pages = response['more']
+        vacancies_info = response.json()
+        vacancies += vacancies_info['objects']
+        vacancies_amount = vacancies_info['total']
+        more_pages = vacancies_info['more']
 
         if not more_pages:
             return vacancies, vacancies_amount
@@ -64,8 +64,8 @@ def get_sj_vacancies(language: str, token: str, town_id=4):
 def predict_rub_salary(salary_from, salary_to):
     if salary_from:
         return salary_from * 1.2
-    else:
-        return salary_to * 0.8
+    
+    return salary_to * 0.8
 
 
 def get_hh_salaries(vacancies: list):
